@@ -68,7 +68,8 @@ def main():
     # setup hparams
     hparams = hparams_registry.default_hparams(args.algorithm, args.dataset)
 
-    keys = ["config.yaml"] + args.configs
+    # keys = ["config.yaml"] + args.configs
+    keys = ["config_style.yaml"] + args.configs
     keys = [open(key, encoding="utf8") for key in keys]
     hparams = Config(*keys, default=hparams)
     hparams.argv_update(left_argv)

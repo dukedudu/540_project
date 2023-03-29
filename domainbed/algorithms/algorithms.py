@@ -136,7 +136,6 @@ class ERM(Algorithm):
         assert fc_proj.requires_grad == True
         loss = loss_cls
         if self.hparams['PCL_loss'] == 1:
-            print("test")
             loss_pcl = self.proxycloss(rep, all_y, fc_proj)
             loss += self.pcl_weights * loss_pcl
 
@@ -217,7 +216,6 @@ class ERM2(Algorithm):
 
         loss = loss_cls
         if self.hparams['PCL_loss'] == 1:
-            print("test")
             loss_pcl = self.proxycloss(rep, all_y, fc_proj)
             loss += self.pcl_weights * loss_pcl
         if self.hparams['Style_loss'] == 1:
@@ -233,7 +231,6 @@ class ERM2(Algorithm):
                 "loss_style": loss_style.item() if self.hparams['Style_loss'] == 1 else 0}
 
     def predict(self, x, style_aug=False):
-
         self.featurizer.style_augment = style_aug
         self.featurizer.init = style_aug
         x = self.featurizer(x)

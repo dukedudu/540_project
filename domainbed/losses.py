@@ -113,24 +113,6 @@ class StyleCLLoss(nn.Module):
 
         labels = torch.zeros(
             logits.shape[0], dtype=torch.long).to(feature.device)
-        # pred = F.linear(feature, F.normalize(feature_aug, p=2, dim=1))  # proxy class # (N, C)
-        # label = (self.label.unsqueeze(1).to(feature.device) == target.unsqueeze(0))  # (C, N)
-        # pred = torch.masked_select(pred.transpose(1, 0), label)  # N,
-        #
-        # pred = pred.unsqueeze(1)  # (N, 1)
-        #
-        # feature = torch.matmul(feature, feature.transpose(1, 0))  # (N, N)
-        # label_matrix = target.unsqueeze(1) == target.unsqueeze(0)  # (N, N)
-        #
-        # index_label = torch.LongTensor([i for i in range(feature.shape[0])])  # generate index label
-        # index_matrix = index_label.unsqueeze(1) == index_label.unsqueeze(0)  # get index matrix
-        #
-        # feature = feature * ~label_matrix  # get negative matrix
-        # feature = feature.masked_fill(feature < 1e-6, -np.inf)  # (N, N)
-        #
-        # logits = torch.cat([pred, feature], dim=1)  # (N, 1+N)
-        # label = torch.zeros(logits.size(0), dtype=torch.long).to(feature.device)
-        # loss = F.nll_loss(F.log_softmax(self.scale * logits, dim=1), label)
         loss = self.criterion(logits, labels)
         return loss
 

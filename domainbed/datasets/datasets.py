@@ -40,7 +40,7 @@ def num_environments(dataset_name):
 class MultipleDomainDataset:
     N_STEPS = 5001  # Default, subclasses may override
     CHECKPOINT_FREQ = 100  # Default, subclasses may override
-    N_WORKERS = 12  # Default, subclasses may override
+    N_WORKERS = 8  # Default, subclasses may override
     ENVIRONMENTS = None  # Subclasses should override
     INPUT_SHAPE = None  # Subclasses should override
 
@@ -97,9 +97,11 @@ class MultipleEnvironmentMNIST(MultipleDomainDataset):
         original_dataset_tr = MNIST(root, train=True, download=True)
         original_dataset_te = MNIST(root, train=False, download=True)
 
-        original_images = torch.cat((original_dataset_tr.data, original_dataset_te.data))
+        original_images = torch.cat(
+            (original_dataset_tr.data, original_dataset_te.data))
 
-        original_labels = torch.cat((original_dataset_tr.targets, original_dataset_te.targets))
+        original_labels = torch.cat(
+            (original_dataset_tr.targets, original_dataset_te.targets))
 
         shuffle = torch.randperm(len(original_images))
 
@@ -110,9 +112,10 @@ class MultipleEnvironmentMNIST(MultipleDomainDataset):
         self.environments = environments
 
         for i in range(len(environments)):
-            images = original_images[i :: len(environments)]
-            labels = original_labels[i :: len(environments)]
-            self.datasets.append(dataset_transform(images, labels, environments[i]))
+            images = original_images[i:: len(environments)]
+            labels = original_labels[i:: len(environments)]
+            self.datasets.append(dataset_transform(
+                images, labels, environments[i]))
 
         self.input_shape = input_shape
         self.num_classes = num_classes
@@ -136,13 +139,16 @@ class ColoredMNIST(MultipleEnvironmentMNIST):
         # Assign a binary label based on the digit
         labels = (labels < 5).float()
         # Flip label with probability 0.25
-        labels = self.torch_xor_(labels, self.torch_bernoulli_(0.25, len(labels)))
+        labels = self.torch_xor_(
+            labels, self.torch_bernoulli_(0.25, len(labels)))
 
         # Assign a color based on the label; flip the color with probability e
-        colors = self.torch_xor_(labels, self.torch_bernoulli_(environment, len(labels)))
+        colors = self.torch_xor_(
+            labels, self.torch_bernoulli_(environment, len(labels)))
         images = torch.stack([images, images], dim=1)
         # Apply the color to the image by zeroing out the other color channel
-        images[torch.tensor(range(len(images))), (1 - colors).long(), :, :] *= 0
+        images[torch.tensor(range(len(images))),
+               (1 - colors).long(), :, :] *= 0
 
         x = images.float().div_(255.0)
         y = labels.view(-1).long()
@@ -172,7 +178,8 @@ class RotatedMNIST(MultipleEnvironmentMNIST):
         rotation = T.Compose(
             [
                 T.ToPILImage(),
-                T.Lambda(lambda x: rotate(x, angle, fill=(0,), resample=Image.BICUBIC)),
+                T.Lambda(lambda x: rotate(
+                    x, angle, fill=(0,), resample=Image.BICUBIC)),
                 T.ToTensor(),
             ]
         )
@@ -197,15 +204,15 @@ class MultipleEnvironmentImageFolder(MultipleDomainDataset):
         # environments = ["quickdraw", "painting", "infograph", "clipart", "real", "sketch"]  # test
         # environments = ["real", "painting", "infograph", "clipart", "quickdraw", "sketch"]  # test
         # environments = ["sketch", "painting", "infograph", "clipart", "quickdraw", "real"]  # test
-    
+
         # VLCS environments, you can annotate it, just for testing
         # environments = ["VOC2007", "LabelMe", "SUN09", "Caltech101"]  # test
         # environments = ["LabelMe", "VOC2007", "SUN09", "Caltech101"]  # test
         # environments = ["SUN09", "VOC2007", "LabelMe", "Caltech101"]  # test
         # environments = ["Caltech101", "VOC2007", "LabelMe", "SUN09"]  # test
-        
+
         # environments = ["location_43", "location_38", "location_100", "location_46"]
-    
+
         self.environments = environments
 
         self.datasets = []
