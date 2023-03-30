@@ -2,5 +2,6 @@
 # Config order: hparams_registry -> config.yaml -> CLI
 scheduler: const
 
+swad: False
 test_batchsize: 128
 indomain_test: False  # use indomain test split or not

@@ -203,11 +203,6 @@ class ERM2(Algorithm):
     def update(self, x, y, **kwargs):
         all_x = torch.cat(x)
         all_y = torch.cat(y)
-        rep, pred = self.predict(all_x, style_aug=True)
-        loss_cls = F.nll_loss(F.log_softmax(pred, dim=1), all_y)
-
-        fc_proj = F.linear(self.classifier, self.fc_proj)
-        assert fc_proj.requires_grad == True
         rep, pred = self.predict(all_x, style_aug=False)
         loss_cls = F.nll_loss(F.log_softmax(pred, dim=1), all_y)
 
@@ -215,13 +210,15 @@ class ERM2(Algorithm):
         assert fc_proj.requires_grad == True
 
         loss = loss_cls
+        C_scale = min(loss_cls.item(), 1.)
+
         if self.hparams['PCL_loss'] == 1:
             loss_pcl = self.proxycloss(rep, all_y, fc_proj)
             loss += self.pcl_weights * loss_pcl
         if self.hparams['Style_loss'] == 1:
             rep_style, _ = self.predict(all_x, style_aug=True)
             loss_style = self.styleloss(rep, rep_style)
-            loss += 1 * loss_style
+            loss += C_scale * 0.1 * loss_style
 
         self.optimizer.zero_grad()
         loss.backward()

@@ -26,14 +26,14 @@ def _hparams(algorithm, dataset, random_state):
 
     hparams["freeze_bn"] = (True, True)
     hparams["pretrained"] = (True, True)  # only for ResNet
-    hparams["topk"] = (16, 16)
-    hparams["bank_size"] = (128, 128)
+    hparams["topk"] = (8, 8)
+    hparams["bank_size"] = (64, 64)
     # hparams["pretrained"] = (False, False)  # only for ResNet
     # hparams['out_dim'] = (512, 512)
     # hparams['hidden_size'] = (4096, 4096)
 
     if dataset not in SMALL_IMAGES:
-        hparams["lr"] = (5e-5, 10 ** random_state.uniform(-5, -3.5))
+        hparams["lr"] = (4e-5, 10 ** random_state.uniform(-5, -3.5))
         # hparams["lr"] = (3e-4, 10 ** random_state.uniform(-5, -3.5))
         # hparams["lr"] = (1e-2, 10 ** random_state.uniform(-5, -3.5))
         if dataset == "DomainNet":
@@ -41,7 +41,7 @@ def _hparams(algorithm, dataset, random_state):
             hparams["batch_size"] = (24, int(2 ** random_state.uniform(3, 5)))
         else:
             hparams["batch_size"] = (
-                32, int(2 ** random_state.uniform(3, 5.5)))
+                24, int(2 ** random_state.uniform(3, 5.5)))
         if algorithm == "ARM":
             hparams["batch_size"] = (8, 8)
     else:
