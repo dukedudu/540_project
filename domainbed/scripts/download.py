@@ -229,7 +229,8 @@ def download_terra_incognita(data_dir):
         if image_location not in include_locations:
             continue
 
-        loc_folder = os.path.join(destination_folder, "location_" + str(image_location) + "/")
+        loc_folder = os.path.join(
+            destination_folder, "location_" + str(image_location) + "/")
 
         if not os.path.exists(loc_folder):
             os.mkdir(loc_folder)
@@ -269,11 +270,16 @@ def download_terra_incognita(data_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download datasets")
     parser.add_argument("--data_dir", type=str, required=True)
+    parser.add_argument("--dataset", type=str, required=True)
     args = parser.parse_args()
 
     # download_mnist(args.data_dir)
-    # download_pacs(args.data_dir)
+    if args.dataset == "PACS":
+        download_pacs(args.data_dir)
     # download_vlcs(args.data_dir)
-    # download_domain_net(args.data_dir)
-    download_office_home(args.data_dir)
-    # download_terra_incognita(args.data_dir)
+    elif args.dataset == "DNET":
+        download_domain_net(args.data_dir)
+    elif args.dataset == "TERRA":
+        download_terra_incognita(args.data_dir)
+    else:
+        download_office_home(args.data_dir)

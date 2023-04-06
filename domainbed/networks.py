@@ -329,7 +329,18 @@ def encoder(hparams):
             nn.Linear(hparams['hidden_size'], hparams['out_dim']),
         )
     else:
-        pass
+        scale_weights = 12
+        pcl_weights = 1
+        dropout = nn.Dropout(0.25)
+        hparams['hidden_size'] = 512
+        hparams['out_dim'] = 512
+        encoder = nn.Sequential(
+            nn.Linear(n_outputs, hparams['hidden_size']),
+            nn.BatchNorm1d(hparams['hidden_size']),
+            nn.ReLU(inplace=True),
+            dropout,
+            nn.Linear(hparams['hidden_size'], hparams['out_dim']),
+        )
 
     return encoder, scale_weights, pcl_weights
 
@@ -376,6 +387,19 @@ def fea_proj(hparams):
                               hparams['out_dim'])
         )
     else:
-        pass
+        dropout = nn.Dropout(0.25)
+        hparams['hidden_size'] = 512
+        hparams['out_dim'] = 512
+        fea_proj = nn.Sequential(
+            nn.Linear(hparams['out_dim'],
+                      hparams['hidden_size']),
+            dropout,
+            nn.Linear(hparams['hidden_size'],
+                      hparams['out_dim']),
+        )
+        fc_proj = nn.Parameter(
+            torch.FloatTensor(hparams['out_dim'],
+                              hparams['out_dim'])
+        )
 
     return fea_proj, fc_proj

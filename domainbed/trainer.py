@@ -38,7 +38,8 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
     #######################################################
     args.real_test_envs = test_envs  # for log
     algorithm_class = algorithms.get_algorithm_class(args.algorithm)
-    dataset, in_splits, out_splits = get_dataset(test_envs, args, hparams, algorithm_class)
+    dataset, in_splits, out_splits = get_dataset(
+        test_envs, args, hparams, algorithm_class)
     test_splits = []
     if hparams.indomain_test > 0.0:
         logger.info("!!! In-domain test mode On !!!")
@@ -67,7 +68,8 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
         testenv_name = "te_" + "_".join(testenv_properties)
 
     logger.info(
-        "Testenv name escaping {} -> {}".format(testenv_name, testenv_name.replace(".", ""))
+        "Testenv name escaping {} -> {}".format(
+            testenv_name, testenv_name.replace(".", ""))
     )
     testenv_name = testenv_name.replace(".", "")
     logger.info(f"Test envs = {test_envs}, name = {testenv_name}")
@@ -80,7 +82,8 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
     batch_sizes[test_envs] = 0
     batch_sizes = batch_sizes.tolist()
 
-    logger.info(f"Batch sizes for each domain: {batch_sizes} (total={sum(batch_sizes)})")
+    logger.info(
+        f"Batch sizes for each domain: {batch_sizes} (total={sum(batch_sizes)})")
 
     # calculate steps per epoch
     steps_per_epochs = [
@@ -90,7 +93,8 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
     steps_per_epoch = min(steps_per_epochs)
     # epoch is computed by steps_per_epoch
     prt_steps = ", ".join([f"{step:.2f}" for step in steps_per_epochs])
-    logger.info(f"steps-per-epoch for each domain: {prt_steps} -> min = {steps_per_epoch:.2f}")
+    logger.info(
+        f"steps-per-epoch for each domain: {prt_steps} -> min = {steps_per_epoch:.2f}")
 
     # setup loaders
     train_loaders = [
@@ -107,15 +111,19 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
     eval_loaders_kwargs = []
     for i, (env, _) in enumerate(in_splits + out_splits + test_splits):
         batchsize = hparams["test_batchsize"]
-        loader_kwargs = {"dataset": env, "batch_size": batchsize, "num_workers": dataset.N_WORKERS}
+        loader_kwargs = {"dataset": env, "batch_size": batchsize,
+                         "num_workers": dataset.N_WORKERS}
         if args.prebuild_loader:
             loader_kwargs = FastDataLoader(**loader_kwargs)
         eval_loaders_kwargs.append(loader_kwargs)
 
-    eval_weights = [None for _, weights in (in_splits + out_splits + test_splits)]
+    eval_weights = [None for _, weights in (
+        in_splits + out_splits + test_splits)]
     eval_loader_names = ["env{}_in".format(i) for i in range(len(in_splits))]
-    eval_loader_names += ["env{}_out".format(i) for i in range(len(out_splits))]
-    eval_loader_names += ["env{}_inTE".format(i) for i in range(len(test_splits))]
+    eval_loader_names += ["env{}_out".format(i)
+                          for i in range(len(out_splits))]
+    eval_loader_names += ["env{}_inTE".format(i)
+                          for i in range(len(test_splits))]
     eval_meta = list(zip(eval_loader_names, eval_loaders_kwargs, eval_weights))
 
     #######################################################
@@ -204,7 +212,8 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
             results["eval_time"] = time.time() - eval_start_time
 
             # results = (epochs, loss, step, step_time)
-            results_keys = list(summaries.keys()) + sorted(accuracies.keys()) + list(results.keys())
+            results_keys = list(summaries.keys()) + \
+                sorted(accuracies.keys()) + list(results.keys())
             # merge results
             results.update(summaries)
             results.update(accuracies)
@@ -220,12 +229,15 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
             results.update({"hparams": dict(hparams), "args": vars(args)})
 
             with open(epochs_path, "a") as f:
-                f.write(json.dumps(results, sort_keys=True, default=json_handler) + "\n")
+                f.write(json.dumps(results, sort_keys=True,
+                        default=json_handler) + "\n")
 
             checkpoint_vals = collections.defaultdict(lambda: [])
 
-            writer.add_scalars_with_prefix(summaries, step, f"{testenv_name}/summary/")
-            writer.add_scalars_with_prefix(accuracies, step, f"{testenv_name}/all/")
+            writer.add_scalars_with_prefix(
+                summaries, step, f"{testenv_name}/summary/")
+            writer.add_scalars_with_prefix(
+                accuracies, step, f"{testenv_name}/all/")
 
             if args.model_save and step >= args.model_save:
                 ckpt_dir = args.out_dir / "checkpoints"
@@ -254,7 +266,8 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
             if swad:
                 def prt_results_fn(results, avgmodel):
                     step_str = f" [{avgmodel.start_step}-{avgmodel.end_step}]"
-                    row = misc.to_row([results[key] for key in results_keys if key in results])
+                    row = misc.to_row([results[key]
+                                      for key in results_keys if key in results])
                     logger.info(row + step_str)
 
                 swad.update_and_evaluate(
@@ -270,13 +283,15 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
         if step % args.tb_freq == 0:
             # add step values only for tb log
             step_vals["lr"] = scheduler.get_last_lr()[0]
-            writer.add_scalars_with_prefix(step_vals, step, f"{testenv_name}/summary/")
+            writer.add_scalars_with_prefix(
+                step_vals, step, f"{testenv_name}/summary/")
 
     # find best
     logger.info("---")
     records = Q(records)
     oracle_best = records.argmax("test_out")["test_in"]
-    iid_best = records.argmax("train_out")["test_in"]
+    # iid_best = records.argmax("train_out")["test_in"]
+    iid_best = records.argmin("tr_outloss")["test_in"]
     last = records[-1]["test_in"]
 
     if hparams.indomain_test:
@@ -301,8 +316,10 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
         swad_algorithm = swad.get_final_model()
         if hparams["freeze_bn"] is False:
             n_steps = 500 if not args.debug else 10
-            logger.warning(f"Update SWAD BN statistics for {n_steps} steps ...")
-            swa_utils.update_bn(train_minibatches_iterator, swad_algorithm, n_steps)
+            logger.warning(
+                f"Update SWAD BN statistics for {n_steps} steps ...")
+            swa_utils.update_bn(train_minibatches_iterator,
+                                swad_algorithm, n_steps)
 
         logger.warning("Evaluate SWAD ...")
         accuracies, summaries = evaluator.evaluate(swad_algorithm)
@@ -310,7 +327,8 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
         start = swad_algorithm.start_step
         end = swad_algorithm.end_step
         step_str = f" [{start}-{end}]  (N={swad_algorithm.n_averaged})"
-        row = misc.to_row([results[key] for key in results_keys if key in results]) + step_str
+        row = misc.to_row([results[key]
+                          for key in results_keys if key in results]) + step_str
         logger.info(row)
 
         ret["SWAD"] = results["test_in"]

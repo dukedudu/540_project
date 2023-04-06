@@ -144,6 +144,10 @@ class Q(object):
         selector = make_selector_fn(selector)
         return max(self._list, key=selector)
 
+    def argmin(self, selector):
+        selector = make_selector_fn(selector)
+        return min(self._list, key=selector)
+
     def filter(self, fn):
         return Q([x for x in self._list if fn(x)])
 
@@ -173,7 +177,7 @@ class Q(object):
 
     def sorted(self, key=None, reverse=False):
         if key is None:
-            key = lambda x: x
+            def key(x): return x
 
         def key2(x):
             x = key(x)

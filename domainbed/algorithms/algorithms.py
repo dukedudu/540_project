@@ -217,7 +217,8 @@ class ERM2(Algorithm):
             loss += self.pcl_weights * loss_pcl
         if self.hparams['Style_loss'] == 1:
             rep_style, _ = self.predict(all_x, style_aug=True)
-            loss_style = self.styleloss(rep, rep_style)
+            # loss_style = self.styleloss(rep, rep_style)
+            loss_style = self.styleloss(rep, rep_style, pred, all_y)
             loss += C_scale * 0.1 * loss_style
 
         self.optimizer.zero_grad()
