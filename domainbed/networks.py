@@ -113,25 +113,32 @@ class ResNet(torch.nn.Module):
                 hparams["bank_size"], self.style_dim[i], device='cuda'))
 
         # torch.FloatTensor(4, self.hparams['batch_size']).to('mps')
-        self.init = False
+        self.init = True
         self.style_augment = False
         self.topk = hparams["topk"]
+        self.eps = 1e-6
 
     def forward(self, x):
         """Encode x into a feature vector of size n_outputs."""
         if not self.style_augment:
             return self.dropout(self.network(x))
 
-        # self.batch_style = torch.FloatTensor(x.size()[0], 2, 4)
         x = self.network.conv1(x)
+        assert not torch.isnan(x).any()
         x = self.network.bn1(x)
+        assert not torch.isnan(x).any()
         x = self.network.relu(x)
+        assert not torch.isnan(x).any()
         x = self.network.maxpool(x)
+        assert not torch.isnan(x).any()
 
         x = self.network.layer1(x)
+        assert not torch.isnan(x).any()
         x = self.compute_style(x, 0)
+        assert not torch.isnan(x).any()
         x = self.network.layer2(x)
-        x = self.compute_style(x, 1)
+        assert not torch.isnan(x).any()
+        # x = self.compute_style(x, 1)
         x = self.network.layer3(x)
         # x = self.compute_style(x, 2)
         x = self.network.layer4(x)
@@ -149,37 +156,50 @@ class ResNet(torch.nn.Module):
         # topk: select top k' dissimilar from stats
         similarity = F.normalize(stats) @ F.normalize(bank_stats).T  # B x K
         similarity = torch.softmax(similarity, dim=0)
-        dissimilar_k = torch.topk(similarity, self.topk, largest=False, dim=0)
+        dissimilar_k = torch.topk(similarity, 1, largest=False, dim=0)
         selected_stats = stats[dissimilar_k.indices.T]  # K x K x d
         alpha = torch.sum(dissimilar_k.values.T, dim=1)
         new_stats = selected_stats * dissimilar_k.values.T.unsqueeze(2)
         bank_stats = (1 - alpha).unsqueeze(1) * \
             bank_stats + torch.sum(new_stats, dim=1)
+        # alpha = 0.1
+        # bank_stats = (1 - alpha) * bank_stats + alpha * \
+        # torch.mean(selected_stats, dim=1)
+        # bank_stats = torch.mean(selected_stats, dim=1)
+        # print("bank_stats", bank_stats[0:10])
         return bank_stats
 
     def compute_style(self, x, i):
         mu = x.mean(dim=[2, 3]).detach()
-        sig = x.std(dim=[2, 3]).detach()
+        assert not torch.isnan(mu).any()
+        var = x.var(dim=[2, 3]).detach()
+        sig = (var + self.eps).sqrt()
+        assert not torch.isnan(sig).any()
         if self.init:
             perm = torch.randperm(x.size(0))
             idx = perm[:self.topk]
             self.mu_bank[i] = mu[idx]
             self.sigma_bank[i] = sig[idx]
-            return x
-
+            self.init = False
         else:
             bank_mu = self.mu_bank[i]  # check device
             self.mu_bank[i] = self.update_style_bank(bank_mu, mu).detach()
             bank_sigma = self.sigma_bank[i]
             self.sigma_bank[i] = self.update_style_bank(
                 bank_sigma, sig).detach()
+
         inds = torch.as_tensor(
             np.random.choice(self.mu_bank[i].shape[0], size=x.size()[
                              0], replace=True)
         )
 
         x_norm = (x - mu[..., None, None]) / sig[..., None, None]
-        return x_norm * self.sigma_bank[i][inds, :, None, None] + self.mu_bank[i][inds, :, None, None]
+        assert not torch.isnan(x_norm).any()
+        new_x = x_norm * \
+            self.sigma_bank[i][inds, :, None, None] + \
+            self.mu_bank[i][inds, :, None, None]
+        assert not torch.isnan(new_x).any()
+        return new_x
 
     def train(self, mode=True):
         """

@@ -230,7 +230,7 @@ class ERM2(Algorithm):
 
     def predict(self, x, style_aug=False):
         self.featurizer.style_augment = style_aug
-        self.featurizer.init = style_aug
+        # self.featurizer.init = style_aug
         x = self.featurizer(x)
         x = self.encoder(x)
         rep = self.fea_proj(x)
