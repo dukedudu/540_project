@@ -13,10 +13,10 @@ from domainbed import algorithms
 from domainbed.evaluator import Evaluator
 from domainbed.lr_scheduler import get_scheduler
 from domainbed.lib import misc
-from domainbed.lib import swa_utils
+# from domainbed.lib import swa_utils
 from domainbed.lib.query import Q
 from domainbed.lib.fast_data_loader import InfiniteDataLoader, FastDataLoader
-from domainbed import swad as swad_module
+# from domainbed import swad as swad_module
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -165,11 +165,11 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
         target_env=target_env,
     )
 
-    swad = None
-    if hparams["swad"]:
-        swad_algorithm = swa_utils.AveragedModel(algorithm)
-        swad_cls = getattr(swad_module, hparams["swad"])
-        swad = swad_cls(evaluator, **hparams.swad_kwargs)
+    # swad = None
+    # if hparams["swad"]:
+    #     swad_algorithm = swa_utils.AveragedModel(algorithm)
+    #     swad_cls = getattr(swad_module, hparams["swad"])
+    #     swad = swad_cls(evaluator, **hparams.swad_kwargs)
 
     last_results_keys = None
     records = []
@@ -192,9 +192,9 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
             checkpoint_vals[key].append(val)
         checkpoint_vals["step_time"].append(time.time() - step_start_time)
 
-        if swad:
-            # swad_algorithm is segment_swa for swad
-            swad_algorithm.update_parameters(algorithm, step=step)
+        # if swad:
+        #     # swad_algorithm is segment_swa for swad
+        #     swad_algorithm.update_parameters(algorithm, step=step)
 
         scheduler.step()
 
@@ -263,22 +263,22 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
                     logger.debug("DEBUG Mode -> no save (org path: %s)" % path)
 
             # swad
-            if swad:
-                def prt_results_fn(results, avgmodel):
-                    step_str = f" [{avgmodel.start_step}-{avgmodel.end_step}]"
-                    row = misc.to_row([results[key]
-                                      for key in results_keys if key in results])
-                    logger.info(row + step_str)
+            # if swad:
+            #     def prt_results_fn(results, avgmodel):
+            #         step_str = f" [{avgmodel.start_step}-{avgmodel.end_step}]"
+            #         row = misc.to_row([results[key]
+            #                           for key in results_keys if key in results])
+            #         logger.info(row + step_str)
 
-                swad.update_and_evaluate(
-                    swad_algorithm, results["train_out"], results["tr_outloss"], prt_results_fn
-                )
+            #     swad.update_and_evaluate(
+            #         swad_algorithm, results["train_out"], results["tr_outloss"], prt_results_fn
+            #     )
 
-                if hasattr(swad, "dead_valley") and swad.dead_valley:
-                    logger.info("SWAD valley is dead -> early stop !")
-                    break
+            #     if hasattr(swad, "dead_valley") and swad.dead_valley:
+            #         logger.info("SWAD valley is dead -> early stop !")
+            #         break
 
-                swad_algorithm = swa_utils.AveragedModel(algorithm)  # reset
+            #     swad_algorithm = swa_utils.AveragedModel(algorithm)  # reset
 
         if step % args.tb_freq == 0:
             # add step values only for tb log
@@ -312,27 +312,27 @@ def train(test_envs, args, hparams, n_steps, checkpoint_freq, logger, writer, ta
     }
 
     # Evaluate SWAD
-    if swad:
-        swad_algorithm = swad.get_final_model()
-        if hparams["freeze_bn"] is False:
-            n_steps = 500 if not args.debug else 10
-            logger.warning(
-                f"Update SWAD BN statistics for {n_steps} steps ...")
-            swa_utils.update_bn(train_minibatches_iterator,
-                                swad_algorithm, n_steps)
+    # if swad:
+    #     swad_algorithm = swad.get_final_model()
+    #     if hparams["freeze_bn"] is False:
+    #         n_steps = 500 if not args.debug else 10
+    #         logger.warning(
+    #             f"Update SWAD BN statistics for {n_steps} steps ...")
+    #         swa_utils.update_bn(train_minibatches_iterator,
+    #                             swad_algorithm, n_steps)
 
-        logger.warning("Evaluate SWAD ...")
-        accuracies, summaries = evaluator.evaluate(swad_algorithm)
-        results = {**summaries, **accuracies}
-        start = swad_algorithm.start_step
-        end = swad_algorithm.end_step
-        step_str = f" [{start}-{end}]  (N={swad_algorithm.n_averaged})"
-        row = misc.to_row([results[key]
-                          for key in results_keys if key in results]) + step_str
-        logger.info(row)
+    #     logger.warning("Evaluate SWAD ...")
+    #     accuracies, summaries = evaluator.evaluate(swad_algorithm)
+    #     results = {**summaries, **accuracies}
+    #     start = swad_algorithm.start_step
+    #     end = swad_algorithm.end_step
+    #     step_str = f" [{start}-{end}]  (N={swad_algorithm.n_averaged})"
+    #     row = misc.to_row([results[key]
+    #                       for key in results_keys if key in results]) + step_str
+    #     logger.info(row)
 
-        ret["SWAD"] = results["test_in"]
-        ret["SWAD (inD)"] = results[in_key]
+    #     ret["SWAD"] = results["test_in"]
+    #     ret["SWAD (inD)"] = results[in_key]
 
     for k, acc in ret.items():
         logger.info(f"{k} = {acc:.3%}")

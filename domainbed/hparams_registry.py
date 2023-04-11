@@ -76,39 +76,6 @@ def _hparams(algorithm, dataset, random_state):
         hparams["mlp_width"] = (256, int(2 ** random_state.uniform(6, 10)))
         hparams["mlp_depth"] = (3, int(random_state.choice([3, 4, 5])))
         hparams["mlp_dropout"] = (0.0, random_state.choice([0.0, 0.1, 0.5]))
-    elif algorithm == "RSC":
-        hparams["rsc_f_drop_factor"] = (1 / 3, random_state.uniform(0, 0.5))
-        hparams["rsc_b_drop_factor"] = (1 / 3, random_state.uniform(0, 0.5))
-    elif algorithm == "SagNet":
-        hparams["sag_w_adv"] = (0.1, 10 ** random_state.uniform(-2, 1))
-    elif algorithm == "IRM":
-        hparams["irm_lambda"] = (1e2, 10 ** random_state.uniform(-1, 5))
-        hparams["irm_penalty_anneal_iters"] = (
-            500,
-            int(10 ** random_state.uniform(0, 4)),
-        )
-    elif algorithm in ["Mixup", "OrgMixup"]:
-        hparams["mixup_alpha"] = (0.2, 10 ** random_state.uniform(-1, -1))
-    elif algorithm == "GroupDRO":
-        hparams["groupdro_eta"] = (1e-2, 10 ** random_state.uniform(-3, -1))
-    elif algorithm in ("MMD", "CORAL"):
-        hparams["mmd_gamma"] = (1.0, 10 ** random_state.uniform(-1, 1))
-    elif algorithm in ("MLDG", "SOMLDG"):
-        hparams["mldg_beta"] = (1.0, 10 ** random_state.uniform(-1, 1))
-    elif algorithm == "MTL":
-        hparams["mtl_ema"] = (0.99, random_state.choice([0.5, 0.9, 0.99, 1.0]))
-    elif algorithm == "VREx":
-        hparams["vrex_lambda"] = (1e1, 10 ** random_state.uniform(-1, 5))
-        hparams["vrex_penalty_anneal_iters"] = (
-            500,
-            int(10 ** random_state.uniform(0, 4)),
-        )
-    elif algorithm == "SAM":
-        hparams["rho"] = (0.05, random_state.choice([0.01, 0.02, 0.05, 0.1]))
-    elif algorithm == "CutMix":
-        hparams["beta"] = (1.0, 1.0)
-        # cutmix_prob is set to 1.0 for ImageNet and 0.5 for CIFAR100 in the original paper.
-        hparams["cutmix_prob"] = (1.0, 1.0)
 
     return hparams
 

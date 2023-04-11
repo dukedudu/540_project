@@ -145,39 +145,27 @@ class StyleCLLoss(nn.Module):
     def forward(self, feature, feature_aug, pred, gt_label):
         feature = F.normalize(feature, p=2, dim=1)
         feature_aug = F.normalize(feature_aug, p=2, dim=1)
-        loss = self.mse(feature, feature_aug)
+        feature_m = torch.matmul(feature, feature_aug.transpose(1, 0))
+        label_matrix = gt_label.unsqueeze(1) == gt_label.unsqueeze(0)
+        neg_pairs = feature_m * ~label_matrix
+        neg_pairs = neg_pairs.masked_fill(neg_pairs < 1e-6, -np.inf)  # (N, N)
+
+        A = torch.ones(feature.shape[0], 1, 1, dtype=torch.bool)
+        pos_mask = torch.block_diag(*A)
+        pos_pairs = feature_m[pos_mask.bool()].view(pos_mask.shape[0], -1)
+        logits = torch.cat([pos_pairs, neg_pairs], dim=1)
+        labels = torch.zeros(
+            logits.shape[0], dtype=torch.long).to(feature.device)
+        loss = F.nll_loss(F.log_softmax(self.scale * logits, dim=1), labels)
+        # loss += self.entropy(pred)
         return loss
 
-    def entropy(self, input_):
-        bs = input_.size(0)
-        epsilon = 1e-5
-        entropy = -input_ * torch.log(input_ + epsilon)
-        # entropy = torch.sum(entropy, dim=-1)
-        return entropy
-
-
-class PosAlign(nn.Module):
-    '''
-    pass
-    '''
-
-    def __init__(self):
-        super(PosAlign, self).__init__()
-        self.soft_plus = nn.Softplus()
-
-    def forward(self, feature, target):
-        feature = F.normalize(feature, p=2, dim=1)
-
-        feature = torch.matmul(feature, feature.transpose(1, 0))  # (N, N)
-        label_matrix = target.unsqueeze(1) == target.unsqueeze(0)
-
-        positive_pair = torch.masked_select(feature, label_matrix)
-
-        # print("positive_pair.shape", positive_pair.shape)
-
-        loss = 1. * self.soft_plus(torch.logsumexp(positive_pair, 0))
-
-        return loss
+    # def entropy(self, input_):
+    #     bs = input_.size(0)
+    #     epsilon = 1e-5
+    #     entropy = -input_ * torch.log(input_ + epsilon)
+    #     # entropy = torch.sum(entropy, dim=-1)
+    #     return entropy
 
 
 if __name__ == "__main__":
