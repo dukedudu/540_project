@@ -1,3 +1,4 @@
+# Adapted based on https://github.com/yaoxufeng/PCL-Proxy-based-Contrastive-Learning-for-Domain-Generalization
 import argparse
 import collections
 import random
@@ -63,6 +64,7 @@ def main():
                         action="store_true", help="Pre-build eval loaders")
     parser.add_argument("--enable_PCL_loss", type=int, default=1)
     parser.add_argument("--enable_style_loss", type=int, default=1)
+    parser.add_argument("--enable_cls_cl_loss", type=int, default=1)
     args, left_argv = parser.parse_known_args()
 
     # setup hparams
@@ -75,6 +77,7 @@ def main():
     hparams.argv_update(left_argv)
     hparams["PCL_loss"] = args.enable_PCL_loss
     hparams["Style_loss"] = args.enable_style_loss
+    hparams["CLSCL_loss"] = args.enable_style_loss
 
     # setup debug
     if args.debug:

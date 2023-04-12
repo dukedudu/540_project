@@ -33,7 +33,7 @@ def _hparams(algorithm, dataset, random_state):
     # hparams['hidden_size'] = (4096, 4096)
 
     if dataset not in SMALL_IMAGES:
-        hparams["lr"] = (5e-5, 10 ** random_state.uniform(-5, -3.5))
+        hparams["lr"] = (4e-5, 10 ** random_state.uniform(-5, -3.5))
         # hparams["lr"] = (3e-4, 10 ** random_state.uniform(-5, -3.5))
         # hparams["lr"] = (1e-2, 10 ** random_state.uniform(-5, -3.5))
         if dataset == "DomainNet":

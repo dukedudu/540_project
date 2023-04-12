@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
-
+# Adapted based on https://github.com/yaoxufeng/PCL-Proxy-based-Contrastive-Learning-for-Domain-Generalization
+# and https://github.com/facebookresearch/DomainBed
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -112,7 +113,7 @@ class ResNet(torch.nn.Module):
             self.sigma_bank.append(torch.zeros(
                 hparams["bank_size"], self.style_dim[i], device='cuda'))
 
-        self.init = True
+        self.init = [True, True]
         self.style_augment = False
         self.topk = hparams["topk"]
         self.eps = 1e-6
@@ -137,7 +138,8 @@ class ResNet(torch.nn.Module):
         assert not torch.isnan(x).any()
         x = self.network.layer2(x)
         assert not torch.isnan(x).any()
-        # x = self.compute_style(x, 1)
+        x = self.compute_style(x, 1)
+        assert not torch.isnan(x).any()
         x = self.network.layer3(x)
         # x = self.compute_style(x, 2)
         x = self.network.layer4(x)
@@ -160,11 +162,6 @@ class ResNet(torch.nn.Module):
         new_stats = selected_stats * dissimilar_k.values.T.unsqueeze(2)
         bank_stats = (1 - alpha).unsqueeze(1) * \
             bank_stats + torch.sum(new_stats, dim=1)
-        # alpha = 0.1
-        # bank_stats = (1 - alpha) * bank_stats + alpha * \
-        # torch.mean(selected_stats, dim=1)
-        # bank_stats = torch.mean(selected_stats, dim=1)
-        # print("bank_stats", bank_stats[0:10])
         return bank_stats
 
     def compute_style(self, x, i):
@@ -173,12 +170,12 @@ class ResNet(torch.nn.Module):
         var = x.var(dim=[2, 3]).detach()
         sig = (var + self.eps).sqrt()
         assert not torch.isnan(sig).any()
-        if self.init:
+        if self.init[i]:
             perm = torch.randperm(x.size(0))
             idx = perm[:self.topk]
             self.mu_bank[i] = mu[idx]
             self.sigma_bank[i] = sig[idx]
-            self.init = False
+            self.init[i] = False
         else:
             bank_mu = self.mu_bank[i]  # check device
             self.mu_bank[i] = self.update_style_bank(bank_mu, mu).detach()
@@ -219,8 +216,6 @@ def Featurizer(input_shape, hparams):
     """Auto-select an appropriate featurizer for the given input shape."""
     if len(input_shape) == 1:
         return MLP(input_shape[0], 128, hparams)
-    elif input_shape[1:3] == (28, 28):
-        return MNIST_CNN(input_shape)
     elif input_shape[1:3] == (32, 32):
         return wide_resnet.Wide_ResNet(input_shape, 16, 2, 0.0)
     elif input_shape[1:3] == (224, 224):

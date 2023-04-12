@@ -1,8 +1,16 @@
+# Adapted based on https://github.com/yaoxufeng/PCL-Proxy-based-Contrastive-Learning-for-Domain-Generalization
+# and https://github.com/facebookresearch/DomainBed
 import collections
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from domainbed.lib.fast_data_loader import FastDataLoader
+
+import pandas as pd
+from sklearn.manifold import TSNE
+import time
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -23,7 +31,7 @@ def accuracy_from_loader(algorithm, loader, weights, debug=False):
         y = batch["y"].to(device)
 
         with torch.no_grad():
-            
+
             _, logits = algorithm.predict(x)
             loss = F.cross_entropy(logits, y).item()
 
@@ -33,13 +41,15 @@ def accuracy_from_loader(algorithm, loader, weights, debug=False):
         if weights is None:
             batch_weights = torch.ones(len(x))
         else:
-            batch_weights = weights[weights_offset : weights_offset + len(x)]
+            batch_weights = weights[weights_offset: weights_offset + len(x)]
             weights_offset += len(x)
         batch_weights = batch_weights.to(device)
         if logits.size(1) == 1:
-            correct += (logits.gt(0).eq(y).float() * batch_weights).sum().item()
+            correct += (logits.gt(0).eq(y).float()
+                        * batch_weights).sum().item()
         else:
-            correct += (logits.argmax(1).eq(y).float() * batch_weights).sum().item()
+            correct += (logits.argmax(1).eq(y).float()
+                        * batch_weights).sum().item()
         total += batch_weights.sum().item()
 
         if debug:
@@ -52,6 +62,85 @@ def accuracy_from_loader(algorithm, loader, weights, debug=False):
     return acc, loss
 
 
+def tsne_acc_from_loader(algorithm, loader, weights, env, debug=False):
+    correct = 0
+    total = 0
+    losssum = 0.0
+    weights_offset = 0
+
+    algorithm.eval()
+    start_test = True
+    for i, batch in enumerate(loader):
+        x = batch["x"].to(device)
+        y = batch["y"].to(device)
+
+        with torch.no_grad():
+
+            rep, logits = algorithm.predict(x)
+            loss = F.cross_entropy(logits, y).item()
+
+        B = len(x)
+        losssum += loss * B
+
+        if weights is None:
+            batch_weights = torch.ones(len(x))
+        else:
+            batch_weights = weights[weights_offset: weights_offset + len(x)]
+            weights_offset += len(x)
+        batch_weights = batch_weights.to(device)
+        if logits.size(1) == 1:
+            correct += (logits.gt(0).eq(y).float()
+                        * batch_weights).sum().item()
+        else:
+            correct += (logits.argmax(1).eq(y).float()
+                        * batch_weights).sum().item()
+
+        total += batch_weights.sum().item()
+        batch_weights = batch_weights.type(torch.int)
+        rep = torch.repeat_interleave(rep, batch_weights, dim=0)
+        y = torch.repeat_interleave(y, batch_weights, dim=0)
+
+        if start_test:
+            all_fea = rep.float().cpu()
+            all_y = y.float().cpu()
+            start_test = False
+        else:
+            all_fea = torch.cat((all_fea, rep.float().cpu()), 0)
+            all_y = torch.cat((all_y, y.float().cpu()), 0)
+            break
+
+    algorithm.train()
+
+    acc = correct / total
+    loss = losssum / total
+    df_subset = pd.DataFrame()
+    time_start = time.time()
+    tsne = TSNE(n_components=2, verbose=1, perplexity=2, n_iter=300)
+    tsne_results = tsne.fit_transform(all_fea)
+
+    print('t-SNE done! Time elapsed: {} seconds'.format(time.time() - time_start))
+
+    df_subset['tsne-2d-one'] = tsne_results[:, 0]
+    df_subset['tsne-2d-two'] = tsne_results[:, 1]
+    df_subset['y'] = all_y
+
+    plt.figure(figsize=(16, 10))
+    sns.scatterplot(
+        x="tsne-2d-one", y="tsne-2d-two",
+        hue="y",
+        palette=sns.color_palette("hls", 31),
+        data=df_subset,
+        legend=False,
+        # legend="full",
+        alpha=0.3
+    )
+
+    fig_name = 'visualization/' + \
+        str(env) + 'tsne_e' + '-' + str(acc)[:5] + '.png'
+    plt.savefig(fig_name)
+    return acc, loss
+
+
 def accuracy(algorithm, loader_kwargs, weights, **kwargs):
     if isinstance(loader_kwargs, dict):
         loader = FastDataLoader(**loader_kwargs)
@@ -60,6 +149,16 @@ def accuracy(algorithm, loader_kwargs, weights, **kwargs):
     else:
         raise ValueError(loader_kwargs)
     return accuracy_from_loader(algorithm, loader, weights, **kwargs)
+
+
+def accuracy_tsne(algorithm, loader_kwargs, weights, env_name, **kwargs):
+    if isinstance(loader_kwargs, dict):
+        loader = FastDataLoader(**loader_kwargs)
+    elif isinstance(loader_kwargs, FastDataLoader):
+        loader = loader_kwargs
+    else:
+        raise ValueError(loader_kwargs)
+    return tsne_acc_from_loader(algorithm, loader, weights, **kwargs)
 
 
 class Evaluator:
@@ -107,7 +206,10 @@ class Evaluator:
                 continue
 
             is_test = env_num in self.test_envs
-            acc, loss = accuracy(algorithm, loader_kwargs, weights, debug=self.debug)
+            acc, loss = accuracy(algorithm, loader_kwargs,
+                                 weights, debug=self.debug)
+            # acc, loss = accuracy_tsne(algorithm, loader_kwargs,
+            #                      weights, env_name, debug=self.debug)
             accuracies[name] = acc
             losses[name] = loss
 

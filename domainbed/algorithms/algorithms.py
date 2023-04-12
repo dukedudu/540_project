@@ -1,4 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+# Adapted based on https://github.com/yaoxufeng/PCL-Proxy-based-Contrastive-Learning-for-Domain-Generalization
+# and https://github.com/facebookresearch/DomainBed
 
 import math
 import copy
@@ -15,16 +17,8 @@ from domainbed import networks
 from domainbed.lib.misc import random_pairs_of_minibatches
 from domainbed.optimizers import get_optimizer
 
-from domainbed.models.resnet_mixstyle import (
-    resnet18_mixstyle_L234_p0d5_a0d1,
-    resnet50_mixstyle_L234_p0d5_a0d1,
-)
-from domainbed.models.resnet_mixstyle2 import (
-    resnet18_mixstyle2_L234_p0d5_a0d1,
-    resnet50_mixstyle2_L234_p0d5_a0d1,
-)
 
-from domainbed.losses import ProxyLoss, ProxyPLoss, StyleCLLoss
+from domainbed.losses import ProxyLoss, ProxyPLoss, StyleCLLoss, ClsCLLoss
 
 
 def to_minibatch(x, y):
@@ -184,6 +178,7 @@ class SCL(Algorithm):
 
         self.proxycloss = ProxyPLoss(num_classes=num_classes, scale=self.scale)
         self.styleloss = StyleCLLoss(scale=self.scale)
+        self.clsCLLoss = ClsCLLoss(num_classes=num_classes, scale=self.scale)
 
     def _initialize_weights(self, modules):
         for m in modules:
@@ -210,23 +205,30 @@ class SCL(Algorithm):
         assert fc_proj.requires_grad == True
 
         loss = loss_cls
-        C_scale = min(loss_cls.item(), 1.)
+        C_scale = max(loss_cls.item(), 1.)
 
         if self.hparams['PCL_loss'] == 1:
             loss_pcl = self.proxycloss(rep, all_y, fc_proj)
             loss += self.pcl_weights * loss_pcl
         if self.hparams['Style_loss'] == 1:
             rep_style, _ = self.predict(all_x, style_aug=True)
-            # loss_style = self.styleloss(rep, rep_style)
             loss_style = self.styleloss(rep, rep_style, pred, all_y)
-            loss += C_scale * 0.1 * loss_style
+            loss += C_scale * loss_style
+        if self.hparams["CLSCL_loss"] == 1:
+            loss_triplets1 = self.clsCLLoss(rep, all_y, fc_proj)
+            loss += loss_triplets1
+            if self.hparams['Style_loss'] == 1:
+                loss_triplets2 = self.clsCLLoss(rep_style, all_y, fc_proj)
+                loss += loss_triplets2
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
         return {"loss_cls": loss_cls.item(), "loss_pcl": loss_pcl.item() if self.hparams['PCL_loss'] == 1 else 0,
-                "loss_style": loss_style.item() if self.hparams['Style_loss'] == 1 else 0}
+                "loss_style": loss_style.item() if self.hparams['Style_loss'] == 1 else 0,
+                "loss_cls_1triplet": loss_triplets1.item() if self.hparams['CLSCL_loss'] == 1 else 0,
+                "loss_cls_2triplet": loss_triplets2.item() if self.hparams['CLSCL_loss'] == 1 and self.hparams['Style_loss'] == 1 else 0, }
 
     def predict(self, x, style_aug=False):
         self.featurizer.style_augment = style_aug

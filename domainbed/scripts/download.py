@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
-
+# Adapted based on https://github.com/yaoxufeng/PCL-Proxy-based-Contrastive-Learning-for-Domain-Generalization
+# and https://github.com/facebookresearch/DomainBed
 from torchvision.datasets import MNIST
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
