@@ -205,7 +205,7 @@ class SCL(Algorithm):
         assert fc_proj.requires_grad == True
 
         loss = loss_cls
-        C_scale = max(loss_cls.item(), 1.)
+        C_scale = min(loss_cls.item(), 1.)
 
         if self.hparams['PCL_loss'] == 1:
             loss_pcl = self.proxycloss(rep, all_y, fc_proj)
@@ -213,13 +213,13 @@ class SCL(Algorithm):
         if self.hparams['Style_loss'] == 1:
             rep_style, _ = self.predict(all_x, style_aug=True)
             loss_style = self.styleloss(rep, rep_style, pred, all_y)
-            loss += C_scale * loss_style
+            loss += loss_style
         if self.hparams["CLSCL_loss"] == 1:
             loss_triplets1 = self.clsCLLoss(rep, all_y, fc_proj)
-            loss += loss_triplets1
+            loss += 2*loss_triplets1
             if self.hparams['Style_loss'] == 1:
                 loss_triplets2 = self.clsCLLoss(rep_style, all_y, fc_proj)
-                loss += loss_triplets2
+                loss += 2*loss_triplets2
 
         self.optimizer.zero_grad()
         loss.backward()
