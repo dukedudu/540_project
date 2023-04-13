@@ -14,6 +14,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # Proposed losses
+
+
 class StyleCLLoss(nn.Module):
 
     def __init__(self, scale):
@@ -95,6 +97,7 @@ class ClsCLLoss(nn.Module):
 
     def forward(self, feature, gt_label, proxy):
         feature = F.normalize(feature, p=2, dim=1)
+        proxy = F.normalize(proxy, p=2, dim=1)
         pos_pred = proxy[gt_label]
         perm = torch.randperm(pos_pred.size(0))
         neg_pred = pos_pred[perm]

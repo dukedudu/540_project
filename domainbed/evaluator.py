@@ -107,18 +107,17 @@ def tsne_acc_from_loader(algorithm, loader, weights, env, debug=False):
         else:
             all_fea = torch.cat((all_fea, rep.float().cpu()), 0)
             all_y = torch.cat((all_y, y.float().cpu()), 0)
-            break
 
     algorithm.train()
 
     acc = correct / total
     loss = losssum / total
     df_subset = pd.DataFrame()
-    time_start = time.time()
+    # time_start = time.time()
     tsne = TSNE(n_components=2, verbose=1, perplexity=2, n_iter=300)
     tsne_results = tsne.fit_transform(all_fea)
 
-    print('t-SNE done! Time elapsed: {} seconds'.format(time.time() - time_start))
+    # print('t-SNE done! Time elapsed: {} seconds'.format(time.time() - time_start))
 
     df_subset['tsne-2d-one'] = tsne_results[:, 0]
     df_subset['tsne-2d-two'] = tsne_results[:, 1]
@@ -128,7 +127,7 @@ def tsne_acc_from_loader(algorithm, loader, weights, env, debug=False):
     sns.scatterplot(
         x="tsne-2d-one", y="tsne-2d-two",
         hue="y",
-        palette=sns.color_palette("hls", 31),
+        palette=sns.color_palette("hls", 65),
         data=df_subset,
         legend=False,
         # legend="full",
@@ -158,7 +157,7 @@ def accuracy_tsne(algorithm, loader_kwargs, weights, env_name, **kwargs):
         loader = loader_kwargs
     else:
         raise ValueError(loader_kwargs)
-    return tsne_acc_from_loader(algorithm, loader, weights, **kwargs)
+    return tsne_acc_from_loader(algorithm, loader, weights, env_name, **kwargs)
 
 
 class Evaluator:

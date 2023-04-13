@@ -179,6 +179,7 @@ class SCL(Algorithm):
         self.proxycloss = ProxyPLoss(num_classes=num_classes, scale=self.scale)
         self.styleloss = StyleCLLoss(scale=self.scale)
         self.clsCLLoss = ClsCLLoss(num_classes=num_classes, scale=self.scale)
+        self.cl_loss_weight = self.hparams["cl_loss_weight"]
 
     def _initialize_weights(self, modules):
         for m in modules:
@@ -213,13 +214,13 @@ class SCL(Algorithm):
         if self.hparams['Style_loss'] == 1:
             rep_style, _ = self.predict(all_x, style_aug=True)
             loss_style = self.styleloss(rep, rep_style, pred, all_y)
-            loss += loss_style
+            loss += C_scale*loss_style
         if self.hparams["CLSCL_loss"] == 1:
             loss_triplets1 = self.clsCLLoss(rep, all_y, fc_proj)
-            loss += 2*loss_triplets1
+            loss += self.cl_loss_weight*loss_triplets1
             if self.hparams['Style_loss'] == 1:
                 loss_triplets2 = self.clsCLLoss(rep_style, all_y, fc_proj)
-                loss += 2*loss_triplets2
+                loss += self.cl_loss_weight*loss_triplets2
 
         self.optimizer.zero_grad()
         loss.backward()
