@@ -124,20 +124,20 @@ class ResNet(torch.nn.Module):
             return self.dropout(self.network(x))
 
         x = self.network.conv1(x)
-        assert not torch.isnan(x).any()
+        # assert not torch.isnan(x).any()
         x = self.network.bn1(x)
-        assert not torch.isnan(x).any()
+        # assert not torch.isnan(x).any()
         x = self.network.relu(x)
-        assert not torch.isnan(x).any()
+        # assert not torch.isnan(x).any()
         x = self.network.maxpool(x)
-        assert not torch.isnan(x).any()
+        # assert not torch.isnan(x).any()
 
         x = self.network.layer1(x)
-        assert not torch.isnan(x).any()
+        # assert not torch.isnan(x).any()
         x = self.compute_style(x, 0)
-        assert not torch.isnan(x).any()
+        # assert not torch.isnan(x).any()
         x = self.network.layer2(x)
-        assert not torch.isnan(x).any()
+        # assert not torch.isnan(x).any()
         # x = self.compute_style(x, 1)
         # assert not torch.isnan(x).any()
         x = self.network.layer3(x)
@@ -166,10 +166,8 @@ class ResNet(torch.nn.Module):
 
     def compute_style(self, x, i):
         mu = x.mean(dim=[2, 3]).detach()
-        assert not torch.isnan(mu).any()
         var = x.var(dim=[2, 3]).detach()
         sig = (var + self.eps).sqrt()
-        assert not torch.isnan(sig).any()
         if self.init[i]:
             perm = torch.randperm(x.size(0))
             idx = perm[:self.topk]
@@ -183,17 +181,17 @@ class ResNet(torch.nn.Module):
             self.sigma_bank[i] = self.update_style_bank(
                 bank_sigma, sig).detach()
 
-        inds = torch.as_tensor(
-            np.random.choice(self.mu_bank[i].shape[0], size=x.size()[
-                             0], replace=True)
-        )
+        # inds = torch.as_tensor(
+        #     np.random.choice(self.mu_bank[i].shape[0], size=x.size()[
+        #                      0], replace=True)
+        # )
+        inds = torch.randint(
+            self.mu_bank[i].shape[0], (x.size()[0],), device='cuda')
 
         x_norm = (x - mu[..., None, None]) / sig[..., None, None]
-        assert not torch.isnan(x_norm).any()
         new_x = x_norm * \
             self.sigma_bank[i][inds, :, None, None] + \
             self.mu_bank[i][inds, :, None, None]
-        assert not torch.isnan(new_x).any()
         return new_x
 
     def train(self, mode=True):

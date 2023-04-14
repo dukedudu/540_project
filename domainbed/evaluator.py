@@ -113,11 +113,9 @@ def tsne_acc_from_loader(algorithm, loader, weights, env, debug=False):
     acc = correct / total
     loss = losssum / total
     df_subset = pd.DataFrame()
-    # time_start = time.time()
-    tsne = TSNE(n_components=2, verbose=1, perplexity=2, n_iter=300)
-    tsne_results = tsne.fit_transform(all_fea)
 
-    # print('t-SNE done! Time elapsed: {} seconds'.format(time.time() - time_start))
+    tsne = TSNE(n_components=2, verbose=0, perplexity=2, n_iter=300)
+    tsne_results = tsne.fit_transform(all_fea)
 
     df_subset['tsne-2d-one'] = tsne_results[:, 0]
     df_subset['tsne-2d-two'] = tsne_results[:, 1]
@@ -205,10 +203,10 @@ class Evaluator:
                 continue
 
             is_test = env_num in self.test_envs
-            acc, loss = accuracy(algorithm, loader_kwargs,
-                                 weights, debug=self.debug)
-            # acc, loss = accuracy_tsne(algorithm, loader_kwargs,
-            #                      weights, env_name, debug=self.debug)
+            # acc, loss = accuracy(algorithm, loader_kwargs,
+            #                      weights, debug=self.debug)
+            acc, loss = accuracy_tsne(algorithm, loader_kwargs,
+                                      weights, env_name, debug=self.debug)
             accuracies[name] = acc
             losses[name] = loss
 
