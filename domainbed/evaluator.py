@@ -129,12 +129,12 @@ def tsne_acc_from_loader(algorithm, loader, weights, env, debug=False):
         data=df_subset,
         legend=False,
         # legend="full",
-        alpha=0.3
+        # alpha=0.5
     )
-
     fig_name = 'visualization/' + \
         str(env) + 'tsne_e' + '-' + str(acc)[:5] + '.png'
     plt.savefig(fig_name)
+    plt.close()
     return acc, loss
 
 
@@ -203,10 +203,13 @@ class Evaluator:
                 continue
 
             is_test = env_num in self.test_envs
-            # acc, loss = accuracy(algorithm, loader_kwargs,
-            #                      weights, debug=self.debug)
-            acc, loss = accuracy_tsne(algorithm, loader_kwargs,
-                                      weights, env_name, debug=self.debug)
+            if is_test:
+                acc, loss = accuracy_tsne(algorithm, loader_kwargs,
+                                          weights, env_name, debug=self.debug)
+            else:
+                acc, loss = accuracy(algorithm, loader_kwargs,
+                                     weights, debug=self.debug)
+
             accuracies[name] = acc
             losses[name] = loss
 

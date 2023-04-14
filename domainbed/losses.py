@@ -15,6 +15,8 @@ import torch.nn.functional as F
 
 # Proposed losses
 
+torch.manual_seed(0)
+
 
 class StyleCLLoss(nn.Module):
 
@@ -99,7 +101,7 @@ class ClsCLLoss(nn.Module):
         feature = F.normalize(feature, p=2, dim=1)
         proxy = F.normalize(proxy, p=2, dim=1)
         pos_pred = proxy[gt_label]
-        perm = torch.randperm(pos_pred.size(0))
+        perm = torch.randperm(pos_pred.size(0)).to(feature.device)
         neg_pred = pos_pred[perm]
         loss = self.criterion(feature, pos_pred, neg_pred)
         return loss

@@ -10,6 +10,8 @@ import numpy as np
 from domainbed.lib import wide_resnet
 from domainbed.models.resnet import resnet50, resnet18
 
+torch.manual_seed(0)
+
 
 class Identity(nn.Module):
     """An identity layer"""
@@ -106,17 +108,18 @@ class ResNet(torch.nn.Module):
         # block x k x c
         self.mu_bank = []
         self.sigma_bank = []
-        self.style_dim = [256, 512, 1024, 2048]
-        for i in range(4):
+        self.style_dim = [256, 512, 1024]
+        for i in range(3):
             self.mu_bank.append(torch.zeros(
                 hparams["bank_size"], self.style_dim[i], device='cuda'))
             self.sigma_bank.append(torch.zeros(
                 hparams["bank_size"], self.style_dim[i], device='cuda'))
 
-        self.init = [True, True]
+        self.init = [True, True, True]
         self.style_augment = False
         self.topk = hparams["topk"]
         self.eps = 1e-6
+        self.style_layers = hparams["style_layers"]
 
     def forward(self, x):
         """Encode x into a feature vector of size n_outputs."""
@@ -124,26 +127,20 @@ class ResNet(torch.nn.Module):
             return self.dropout(self.network(x))
 
         x = self.network.conv1(x)
-        # assert not torch.isnan(x).any()
         x = self.network.bn1(x)
-        # assert not torch.isnan(x).any()
         x = self.network.relu(x)
-        # assert not torch.isnan(x).any()
         x = self.network.maxpool(x)
-        # assert not torch.isnan(x).any()
 
         x = self.network.layer1(x)
-        # assert not torch.isnan(x).any()
-        x = self.compute_style(x, 0)
-        # assert not torch.isnan(x).any()
+        if self.style_layers >= 1:
+            x = self.compute_style(x, 0)
         x = self.network.layer2(x)
-        # assert not torch.isnan(x).any()
-        # x = self.compute_style(x, 1)
-        # assert not torch.isnan(x).any()
+        if self.style_layers >= 2:
+            x = self.compute_style(x, 1)
         x = self.network.layer3(x)
-        # x = self.compute_style(x, 2)
+        if self.style_layers >= 3:
+            x = self.compute_style(x, 2)
         x = self.network.layer4(x)
-        # x = self.compute_style(x, 3)
         x = self.network.avgpool(x)
         x = self.network.fc(x)
         x = self.dropout(x)
@@ -181,12 +178,12 @@ class ResNet(torch.nn.Module):
             self.sigma_bank[i] = self.update_style_bank(
                 bank_sigma, sig).detach()
 
-        # inds = torch.as_tensor(
-        #     np.random.choice(self.mu_bank[i].shape[0], size=x.size()[
-        #                      0], replace=True)
-        # )
-        inds = torch.randint(
-            self.mu_bank[i].shape[0], (x.size()[0],), device='cuda')
+        inds = torch.as_tensor(
+            np.random.choice(self.mu_bank[i].shape[0], size=x.size()[
+                             0], replace=True)
+        )
+        # inds = torch.randint(
+        #     self.mu_bank[i].shape[0], (x.size()[0],), device='cuda')
 
         x_norm = (x - mu[..., None, None]) / sig[..., None, None]
         new_x = x_norm * \

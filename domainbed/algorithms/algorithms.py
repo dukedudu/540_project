@@ -151,7 +151,7 @@ class ERM(Algorithm):
 
 class SCL(Algorithm):
     """
-    Empirical Risk Minimization (ERM)
+    Multi-Scale Contrastive Loss
     """
 
     def __init__(self, input_shape, num_classes, num_domains, hparams):

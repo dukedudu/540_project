@@ -23,6 +23,8 @@ if torch.cuda.is_available():
 else:
     device = "cpu"
 
+torch.manual_seed(0)
+
 
 def json_handler(v):
     if isinstance(v, (Path, range)):

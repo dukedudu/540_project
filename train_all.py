@@ -19,6 +19,8 @@ from domainbed.lib.writers import get_writer
 from domainbed.lib.logger import Logger
 from domainbed.trainer import train
 
+torch.manual_seed(0)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Domain generalization")
@@ -66,6 +68,7 @@ def main():
     parser.add_argument("--enable_style_loss", type=int, default=1)
     parser.add_argument("--enable_cls_cl_loss", type=int, default=1)
     parser.add_argument("--cl_loss_weight", type=int, default=1)
+    parser.add_argument("--style_layers", type=int, default=1)
     args, left_argv = parser.parse_known_args()
 
     # setup hparams
@@ -80,6 +83,7 @@ def main():
     hparams["Style_loss"] = args.enable_style_loss
     hparams["CLSCL_loss"] = args.enable_style_loss
     hparams["cl_loss_weight"] = args.cl_loss_weight
+    hparams["style_layers"] = args.style_layers
 
     # setup debug
     if args.debug:
