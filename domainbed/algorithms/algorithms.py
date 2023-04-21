@@ -251,6 +251,7 @@ class ACL(Algorithm):
         self.optimizer.step()
         if self.adversial == 1:
             loss = 0
+            rep, pred, style_info = self.predict(all_x, style_adv=True)
             domain_pred = F.linear(rep, self.domain_classifier)
             domain_cls_max = F.nll_loss(F.log_softmax(domain_pred, dim=1),
                                         self.domainLabel.to(domain_pred.device))
