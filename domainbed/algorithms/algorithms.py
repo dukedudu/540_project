@@ -187,7 +187,7 @@ class ACL(Algorithm):
                 {'params': self.featurizer.parameters()},
                 {'params': self.encoder.parameters()},
                 {'params': self.fea_proj.parameters()},
-            ], lr=self.hparams["lr"], weight_decay=self.hparams["weight_decay"])
+            ], lr=self.hparams["lr"]/10, weight_decay=self.hparams["weight_decay"])
 
         self.optimizer = torch.optim.Adam([
             {'params': self.featurizer.parameters()},
@@ -243,15 +243,13 @@ class ACL(Algorithm):
             style_domain_cls = F.nll_loss(F.log_softmax(
                 style_info_pred, dim=1), self.domainLabel.to(domain_pred.device))
             loss += style_domain_cls
-            # self.optimizer_max.zero_grad()
-            # loss.backward()
-            # self.optimizer_max.step()
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
         if self.adversial == 1:
-            loss = 0
             rep, pred, style_info = self.predict(all_x, style_adv=True)
+            cls_max = F.nll_loss(F.log_softmax(pred, dim=1), all_y)
+            loss = cls_max
             domain_pred = F.linear(rep, self.domain_classifier)
             domain_cls_max = F.nll_loss(F.log_softmax(domain_pred, dim=1),
                                         self.domainLabel.to(domain_pred.device))
@@ -266,9 +264,10 @@ class ACL(Algorithm):
             self.optimizer_max.step()
 
         return {"loss_cls": loss_cls.item(),
-                "loss_cls_triplet": loss_triplets.item() if self.hparams['CLSCL_loss'] == 1 else 0,
+                "loss_triplet": loss_triplets.item() if self.hparams['CLSCL_loss'] == 1 else 0,
                 "loss_domain_cls": domain_cls.item() if self.adversial == 1 else 0,
                 "loss_style_domain_cls": style_domain_cls.item() if self.adversial == 1 else 0,
+                "cls_max": cls_max.item() if self.adversial == 1 else 0,
                 "max_domain_cls": domain_cls_max.item() if self.adversial == 1 else 0,
                 "max_style_domain_cls": style_domain_cls_max.item() if self.adversial == 1 else 0, }
 
