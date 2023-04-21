@@ -106,40 +106,24 @@ class ResNet(torch.nn.Module):
         self.freeze_bn()
 
         # block x k x c
-        self.mu_bank = []
-        self.sigma_bank = []
         self.style_dim = [256, 512, 1024]
-        for i in range(3):
-            self.mu_bank.append(torch.zeros(
-                hparams["bank_size"], self.style_dim[i], device='cuda'))
-            self.sigma_bank.append(torch.zeros(
-                hparams["bank_size"], self.style_dim[i], device='cuda'))
-
-        self.init = [True, True, True]
-        self.style_augment = False
-        self.topk = hparams["topk"]
         self.eps = 1e-6
-        self.style_layers = hparams["style_layers"]
+        self.style_stats = None
 
-    def forward(self, x):
+    def forward(self, x, sty_adv=False):
         """Encode x into a feature vector of size n_outputs."""
-        if not self.style_augment:
+        if not sty_adv:
             return self.dropout(self.network(x))
 
         x = self.network.conv1(x)
         x = self.network.bn1(x)
         x = self.network.relu(x)
         x = self.network.maxpool(x)
-
         x = self.network.layer1(x)
-        if self.style_layers >= 1:
-            x = self.compute_style(x, 0)
+        if sty_adv:
+            self.style_stats = self.compute_style(x)
         x = self.network.layer2(x)
-        if self.style_layers >= 2:
-            x = self.compute_style(x, 1)
         x = self.network.layer3(x)
-        if self.style_layers >= 3:
-            x = self.compute_style(x, 2)
         x = self.network.layer4(x)
         x = self.network.avgpool(x)
         x = self.network.fc(x)
@@ -161,35 +145,11 @@ class ResNet(torch.nn.Module):
             bank_stats + torch.sum(new_stats, dim=1)
         return bank_stats
 
-    def compute_style(self, x, i):
+    def compute_style(self, x):
         mu = x.mean(dim=[2, 3]).detach()
         var = x.var(dim=[2, 3]).detach()
         sig = (var + self.eps).sqrt()
-        if self.init[i]:
-            perm = torch.randperm(x.size(0))
-            idx = perm[:self.topk]
-            self.mu_bank[i] = mu[idx]
-            self.sigma_bank[i] = sig[idx]
-            self.init[i] = False
-        else:
-            bank_mu = self.mu_bank[i]  # check device
-            self.mu_bank[i] = self.update_style_bank(bank_mu, mu).detach()
-            bank_sigma = self.sigma_bank[i]
-            self.sigma_bank[i] = self.update_style_bank(
-                bank_sigma, sig).detach()
-
-        inds = torch.as_tensor(
-            np.random.choice(self.mu_bank[i].shape[0], size=x.size()[
-                             0], replace=True)
-        )
-        # inds = torch.randint(
-        #     self.mu_bank[i].shape[0], (x.size()[0],), device='cuda')
-
-        x_norm = (x - mu[..., None, None]) / sig[..., None, None]
-        new_x = x_norm * \
-            self.sigma_bank[i][inds, :, None, None] + \
-            self.mu_bank[i][inds, :, None, None]
-        return new_x
+        return torch.cat([F.normalize(mu), F.normalize(sig)], dim=1)
 
     def train(self, mode=True):
         """

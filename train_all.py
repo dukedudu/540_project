@@ -65,10 +65,11 @@ def main():
     parser.add_argument("--prebuild_loader",
                         action="store_true", help="Pre-build eval loaders")
     parser.add_argument("--enable_PCL_loss", type=int, default=1)
-    parser.add_argument("--enable_style_loss", type=int, default=1)
     parser.add_argument("--enable_cls_cl_loss", type=int, default=1)
     parser.add_argument("--cl_loss_weight", type=int, default=1)
-    parser.add_argument("--style_layers", type=int, default=1)
+    parser.add_argument("--adversial", type=int, default=0)
+    parser.add_argument("--adversial_pos", type=int, default=0)
+    parser.add_argument("--resnet18", type=int, default=1)
     args, left_argv = parser.parse_known_args()
 
     # setup hparams
@@ -80,10 +81,11 @@ def main():
     hparams = Config(*keys, default=hparams)
     hparams.argv_update(left_argv)
     hparams["PCL_loss"] = args.enable_PCL_loss
-    hparams["Style_loss"] = args.enable_style_loss
-    hparams["CLSCL_loss"] = args.enable_style_loss
+    hparams["CLSCL_loss"] = args.enable_cls_cl_loss
     hparams["cl_loss_weight"] = args.cl_loss_weight
-    hparams["style_layers"] = args.style_layers
+    hparams["resnet18"] = (args.resnet18 == 1)
+    hparams["adversial"] = args.adversial
+    hparams["adversial_pos"] = args.adversial_pos
 
     # setup debug
     if args.debug:

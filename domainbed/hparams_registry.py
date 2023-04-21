@@ -28,6 +28,8 @@ def _hparams(algorithm, dataset, random_state):
     hparams["pretrained"] = (True, True)  # only for ResNet
     hparams["topk"] = (8, 8)
     hparams["bank_size"] = (64, 64)
+    hparams['layer_stats_dim'] = ([[512, 1024, 2048], [128, 256, 512]], [
+                                  [512, 1024, 2048], [128, 256, 512]])
     # hparams["pretrained"] = (False, False)  # only for ResNet
     # hparams['out_dim'] = (512, 512)
     # hparams['hidden_size'] = (4096, 4096)

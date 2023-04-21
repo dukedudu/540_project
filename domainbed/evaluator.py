@@ -32,7 +32,7 @@ def accuracy_from_loader(algorithm, loader, weights, debug=False):
 
         with torch.no_grad():
 
-            _, logits = algorithm.predict(x)
+            _, logits, _ = algorithm.predict(x)
             loss = F.cross_entropy(logits, y).item()
 
         B = len(x)
@@ -76,7 +76,7 @@ def tsne_acc_from_loader(algorithm, loader, weights, env, debug=False):
 
         with torch.no_grad():
 
-            rep, logits = algorithm.predict(x)
+            rep, logits, _ = algorithm.predict(x)
             loss = F.cross_entropy(logits, y).item()
 
         B = len(x)
@@ -125,7 +125,7 @@ def tsne_acc_from_loader(algorithm, loader, weights, env, debug=False):
     sns.scatterplot(
         x="tsne-2d-one", y="tsne-2d-two",
         hue="y",
-        palette=sns.color_palette("hls", 65),
+        palette=sns.color_palette("hls", len(torch.unique(all_y))),
         data=df_subset,
         legend=False,
         # legend="full",
