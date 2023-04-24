@@ -120,10 +120,14 @@ class ResNet(torch.nn.Module):
         x = self.network.relu(x)
         x = self.network.maxpool(x)
         x = self.network.layer1(x)
-        if sty_adv:
+        if sty_adv and self.hparams['adversial_pos'] == 0:
             self.style_stats = self.compute_style(x)
         x = self.network.layer2(x)
+        if sty_adv and self.hparams['adversial_pos'] == 1:
+            self.style_stats = self.compute_style(x)
         x = self.network.layer3(x)
+        if sty_adv and self.hparams['adversial_pos'] == 2:
+            self.style_stats = self.compute_style(x)
         x = self.network.layer4(x)
         x = self.network.avgpool(x)
         x = self.network.fc(x)
